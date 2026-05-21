@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>しまね、たおすな。</title>
+  <style>
+    :root {
+      --cream: #fff4d8;
+      --cream-deep: #f8dfad;
+      --green: #234f38;
+      --green-soft: #5f8f62;
+      --brown: #7b5232;
+      --ink: #26352b;
+      --danger: #c74633;
+      --panel: rgba(255, 250, 235, 0.92);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: "Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+      touch-action: none;
+      user-select: none;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    .game-shell {
+      position: relative;
+      width: min(100vw, 900px);
+      height: min(100dvh, 780px);
+      min-height: 560px;
+      background:
+        radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.8) 0 9%, transparent 10%),
+        linear-gradient(180deg, #fff8e7 0%, var(--cream) 52%, var(--cream-deep) 100%);
+      border: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hud {
+      position: absolute;
+      inset: max(14px, env(safe-area-inset-top)) 14px auto;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
+    }
+
+      .pill {
+        min-height: 36px;
+        padding: 8px 12px;
+        border: 2px solid rgba(35, 79, 56, 0.18);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.1;
+        box-shadow: 0 4px 0 rgba(123, 82, 50, 0.12);
+        white-space: nowrap;
+      }
+
+      .message-box {
+        font-weight: 900;
+      }
+
+    .hud button,
+    .overlay button {
+      appearance: none;
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 18px;
+      background: var(--green);
+      color: #fffaf0;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #163526;
+      pointer-events: auto;
+    }
+
+    .hud button:active,
+    .overlay button:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #163526;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 6;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: rgba(255, 244, 216, 0.7);
+      backdrop-filter: blur(2px);
+    }
+
+    .panel {
+      width: min(92vw, 520px);
+      padding: 28px 24px 24px;
+      border: 3px solid rgba(123, 82, 50, 0.18);
+      border-radius: 8px;
+      background: var(--panel);
+      text-align: center;
+      box-shadow: 0 12px 0 rgba(123, 82, 50, 0.16);
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      color: var(--green);
+      letter-spacing: 0;
+      line-height: 1.05;
+    }
+
+    h1 {
+      font-size: clamp(40px, 8vw, 68px);
+    }
+
+    h2 {
+      font-size: clamp(30px, 7vw, 52px);
+    }
+
+    .copy {
+      margin: 14px 0 10px;
+      color: var(--brown);
+      font-size: clamp(18px, 3.8vw, 24px);
+      font-weight: 900;
+    }
+
+    .desc {
+      margin: 14px auto 22px;
+      max-width: 34em;
+      color: #594430;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.7;
+    }
+
+    .result {
+      margin: 14px 0 18px;
+      color: #594430;
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.65;
+    }
+
+    .title-badge {
+      display: inline-block;
+      margin: 8px 0 4px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #f5d681;
+      color: #573821;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .hide {
+      display: none;
+    }
+
+    @media (max-width: 640px) {
+      .game-shell {
+        width: 100vw;
+        height: 100dvh;
+        min-height: 520px;
+      }
+
+      .hud {
+        align-items: flex-start;
+      }
+
+      .stats {
+        max-width: calc(100vw - 128px);
+      }
+
+      .pill {
+        min-height: 32px;
+        padding: 7px 9px;
+        font-size: 12px;
+      }
+
+      .hud button,
+      .overlay button {
+        min-height: 44px;
+        padding: 0 13px;
+        font-size: 14px;
+      }
+
+      .panel {
+        padding: 24px 18px 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell" id="shell">
+    <canvas id="gameCanvas" aria-label="しまね、たおすな。ゲーム画面"></canvas>
+
+    <div class="hud" id="hud">
+      <div class="stats">
+        <div class="pill" id="scoreText">スコア：0</div>
+        <div class="pill" id="countText">積んだ数：0個</div>
+      </div>
+      <button id="restartButton" type="button">リスタート</button>
+    </div>
+
+    <section class="overlay" id="startScreen">
+      <div class="panel">
+        <h1>しまね、たおすな。</h1>
+        <p class="copy">島根の上に、島根を積め。</p>
+        <p class="desc">横長すぎる島根県を倒さないように、名物たちをバランスよく積んでいこう！</p>
+        <button id="startButton" type="button">ゲームスタート</button>
+      </div>
+    </section>
+
+    <section class="overlay hide" id="gameOverScreen">
+      <div class="panel">
+        <h2>島根、たおれました。</h2>
+        <div class="result" id="resultText">スコア：0<br>積んだ数：0個</div>
+        <div class="title-badge" id="rankText">鳥取と間違えた人</div>
+        <p class="desc">重心はだいたい出雲方面に祈ると安定します。</p>
+        <button id="againButton" type="button">もう一度あそぶ</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      // 調整しやすいゲーム定数
+      const CONFIG = {
+        gameOverTiltBase: 25,
+        gameOverTiltMin: 21,
+        baseFallSpeed: 176,
+        fallSpeedGrowth: 9.2,
+        scorePerItem: 10,
+        weightScoreBonus: 3,
+        stableBonusMax: 14,
+        shimaneWidthRatio: 0.62,
+        shimaneWidthMax: 440,
+        settleRandomBase: 5.2,
+        stackPushStrength: 0.18,
+        tiltSlideStrength: 0.22,
+        centerOfMassJitter: 0.13,
+        rollAnimationBase: 0.48,
+        rollAnimationMaxOffset: 20,
+        torqueToDegrees: 5.65,
+        landingBounce: 9,
+        dangerShake: 8,
+        itemWeights: {
+          castle: 5,
+          shijimi: 1,
+          kami: 3,
+          magatama: 2,
+          orochi: 6,
+          dojou: 3,
+          cow: 6,
+          soba: 4
+        },
+        baseSpawnWeights: {
+          castle: 10,
+          shijimi: 18,
+          kami: 13,
+          magatama: 14,
+          orochi: 12,
+          dojou: 13,
+          cow: 9,
+          soba: 12
+        }
+      };
+
+      const ITEM_DEFS = {
+        castle: { label: "松江城", src: "assets/matsue_castle.png", width: 62, height: 52, hitWidth: 54, hitHeight: 44, crop: [287, 138, 894, 758], shape: "flat", slip: 0.12 },
+        shijimi: { label: "しじみ", src: "assets/shijimi.png", width: 42, height: 24, hitWidth: 39, hitHeight: 21, crop: [274, 271, 907, 506], shape: "round", slip: 0.36 },
+        kami: { label: "神様", src: "assets/kami.png", width: 46, height: 66, hitWidth: 36, hitHeight: 58, crop: [222, 203, 657, 935], shape: "tall", slip: 0.25 },
+        magatama: { label: "勾玉", src: "assets/magatama.png", width: 34, height: 36, hitWidth: 29, hitHeight: 31, crop: [283, 237, 670, 723], shape: "round", slip: 0.42 },
+        orochi: { label: "ヤマタノオロチ", src: "assets/yamata_no_orochi.png", width: 86, height: 76, hitWidth: 78, hitHeight: 65, crop: [246, 111, 1028, 898], shape: "long", slip: 0.31 },
+        dojou: { label: "どじょうすくいさん", src: "assets/dojou_sukui.png", width: 48, height: 42, hitWidth: 42, hitHeight: 36, crop: [190, 234, 827, 719], shape: "round", slip: 0.3 },
+        cow: { label: "隠岐の牛", src: "assets/oki_cow.png", width: 48, height: 64, hitWidth: 40, hitHeight: 58, crop: [175, 221, 747, 1002], shape: "tall", slip: 0.22 },
+        soba: { label: "出雲そば", src: "assets/izumo_soba.png", width: 48, height: 70, hitWidth: 42, hitHeight: 62, crop: [210, 227, 701, 1019], shape: "tall", slip: 0.32 }
+      };
+
+      const ITEM_IMAGES = {};
+
+      // /Users/abeitaru/Desktop/shimane.svg から取り込んだ島根県path。
+      // 外部ファイルなしで動くよう、CanvasのPath2Dとして使います。
+      const SHIMANE_SVG = {
+        bounds: { x: 229, y: 364, width: 148, height: 110 },
+        mainBody: { top: 391, bottom: 474 },
+        supportPoint: { x: 306, y: 456 },
+        mainSurface: [
+          { x: 230, y: 441 },
+          { x: 238, y: 440 },
+          { x: 246, y: 437 },
+          { x: 258, y: 430 },
+          { x: 270, y: 422 },
+          { x: 286, y: 415 },
+          { x: 300, y: 410 },
+          { x: 314, y: 406 },
+          { x: 322, y: 398 },
+          { x: 334, y: 391 },
+          { x: 348, y: 392 },
+          { x: 360, y: 394 },
+          { x: 373, y: 396 }
+        ],
+        okiHitZones: [
+          { x: 314, width: 8, top: 381, bottom: 386 },
+          { x: 323, width: 15, top: 370, bottom: 384 },
+          { x: 343, width: 22, top: 364, bottom: 384 }
+        ],
+        paths: [
+          "M317.66,383.59c-.28-1.38-.77-1.8-1.67-1.53-.9.27-.79.73-.72,1.56.07.83.55,1.04,1.21,1.07.66.03,1.28-.63,1.18-1.1Z",
+          "M372.78,395.43c-3.91-.39-9.51-.91-9.51-.91,0,0-.6-5.93-8.54-2.74-7.94,3.19-16.56.09-22.48-.8-5.92-.89-7.39,3.16-14.31,14.84-4.15-.34-16.78,1.33-30.34,12.56-7.7-1.31-27.17,10.49-42.66,18.72,0,0-8.62-.24-10.36,3.38s-15.56,28.6-1.68,32.55c13.88,3.94,18.43-10.9,25.31-16.02s9.21-12.48,11.69-13.78,6.96-3.89,10.32-.4c3.36,3.49,8.38-.34,15.56,1.17,7.18,1.51,0,0,10.27,2.51,10.27,2.51,5.45-7.47,12.14-10.55,6.69-3.08,14.66-6.31,19.99-2.91,5.34,3.41,10.33,4.04,15.05.52s14.62-10.67,16.64-15.68c2.02-5-.09-10.84-3.23-10.56s-6.07-1.48-5.63-5.13,4.8-3.33,10.26-3.32c5.46.01,5.4-3.08,1.49-3.47ZM354.57,401.95c-.37,2.18-7.59,1.02-7.59,1.02-5.11-.74-7.28-1.77-6.95-4.55s5.53-1.51,8.27-.66c2.74.85,6.64,2.01,6.27,4.2Z",
+          "M347.69,371.28s.48-3.58.95-3.99,2.95.39,3.35.13.26-2.3,1.13-2.54c.87-.24,2.49,2.56,3.15,2.54s.95-1.46,1.35-1.49,2.16,2.87,2.24,3.45c.08.58-.62,1,.43,2.62,1.05,1.63,1.86,2.76,1.28,3.87-.58,1.11-1.95,3.86-2.69,4.62s-2.68.49-2.68.49c0,0,1.01-.76.51-1.05s-3.22-.84-3.22-.84l1.59,2.16s-.11,2.16-.59,2.24-2.28-1.01-2.28-1.01l-1.4-2.26s-1.77.3-1.92.24-2.35-.45-1.85-1.37c.5-.92.81-1.51.81-1.51l-1.15-.38s.69-1.56.68-1.74-.97-1.73-.99-2.17c-.02-.44,1.3-2.01,1.3-2.01Z",
+          "M324.84,376.47c-1.88-3.89.23-4.67.23-4.67,0,0,2.39-1.28,2.93-1.13.54.16.54,1.18,1.09,1.43s1.98-1.35,2.36-1.5c1.73-.02,1.45,2.74,1.8,2.69s1.37-.5,1.37-.5l1.42.88.05,1.01-1.93.54-2.94-1.43s-.63,1.24-.56,1.44.29,1.2.29,1.2c0,0-1.14,1.26-2.05,1.27-1.94-1.71-.3-3.96-.3-3.96,0,0-3.54-1.94-2.33,2.75-.43.67-1.43-.02-1.43-.02Z",
+          "M329.05,381.06c-.2-.42,1.4-1.85,1.4-1.85,0,0,1.16-3.34,1.82-3.63.66-.29,1.73.56,1.73.56l-.46,1.03s1.71-1.25,2.29-1,1.31,1.81,1.05,2.27-2.07,1.22-2.07,1.22c0,0,.35.98-.05,1.21s-1.11-.74-1.11-.74l-1.39.81s-.18,1.01-.53,1.01-.94-1.03-.94-1.03c0,0-1.55.54-1.74.13Z",
+          "M324.99,378.18c.56,0,2.17,2.16,2,2.21s.76,2.15.58,2.72-1.2.66-1.2.66c0,0-.8-1.62-1.01-2.34s-1.77-1.59-1.78-2.11.85-1.14,1.41-1.14Z"
+        ],
+        pathObjects: null
+      };
+
+      const ITEM_MESSAGES = {
+        castle: {
+          spawn: ["松江城、そっとお願いします", "松江城、着城準備"],
+          drop: ["松江城、着城します"],
+          landed: ["松江城、どっしり"]
+        },
+        shijimi: {
+          spawn: ["しじみ、軽い！", "しじみのターン"],
+          drop: ["しじみ、ころん"],
+          landed: ["しじみ、ちゃんと乗った"]
+        },
+        kami: {
+          spawn: ["神様、そこは慎重に", "神様のお通りです"],
+          drop: ["神様、降臨します"],
+          landed: ["神様、着地成功"]
+        },
+        magatama: {
+          spawn: ["勾玉、転がり注意", "勾玉、つるっといきそう"],
+          drop: ["勾玉、ころん"],
+          landed: ["勾玉、なんとか停止"]
+        },
+        orochi: {
+          spawn: ["ヤマタノオロチ、首が多いぶん重い", "八つの頭でバランス会議中"],
+          drop: ["ヤマタノオロチ、暴れます"],
+          landed: ["ヤマタノオロチ、圧がすごい"]
+        },
+        dojou: {
+          spawn: ["どじょうすくいさん、表情は余裕", "どじょうすくいさん、置きどころ勝負"],
+          drop: ["どじょうすくいさん、すくっと落下"],
+          landed: ["どじょうすくいさん、にっこり着地"]
+        },
+        cow: {
+          spawn: ["隠岐の牛、重すぎる", "隠岐の牛、足元注意"],
+          drop: ["隠岐の牛、どすん"],
+          landed: ["隠岐の牛、ずっしり"]
+        },
+        soba: {
+          spawn: ["出雲そば、つゆはこぼすな", "そばを積む発想がもう島根"],
+          drop: ["出雲そば、配膳します"],
+          landed: ["出雲そば、意外と安定"]
+        }
+      };
+
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const shell = document.getElementById("shell");
+      const hud = document.getElementById("hud");
+      const startScreen = document.getElementById("startScreen");
+      const gameOverScreen = document.getElementById("gameOverScreen");
+      const scoreText = document.getElementById("scoreText");
+      const countText = document.getElementById("countText");
+      const tiltText = document.getElementById("tiltText");
+      const resultText = document.getElementById("resultText");
+      const rankText = document.getElementById("rankText");
+
+      preloadItemImages();
+
+      let view = { width: 0, height: 0, dpr: 1 };
+      let state = "start";
+      let lastTime = 0;
+      let score = 0;
+      let placedCount = 0;
+      let tilt = 0;
+      let displayTilt = 0;
+      let wobble = 0;
+      let bounce = 0;
+      let shake = 0;
+      let fallRotation = 0;
+      let fallDrop = 0;
+      let pointerX = 0;
+      let pointerActive = false;
+      let currentItem = null;
+      let placedItems = [];
+      let spawnHistory = [];
+      let message = "島根の上に、島根を積め。";
+      let messageTimer = 0;
+
+      function resizeCanvas() {
+        const rect = shell.getBoundingClientRect();
+        view.width = Math.max(320, Math.floor(rect.width));
+        view.height = Math.max(520, Math.floor(rect.height));
+        view.dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.floor(view.width * view.dpr);
+        canvas.height = Math.floor(view.height * view.dpr);
+        canvas.style.width = `${view.width}px`;
+        canvas.style.height = `${view.height}px`;
+        ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+        pointerX = pointerX || view.width / 2;
+      }
+
+      function preloadItemImages() {
+        for (const [type, def] of Object.entries(ITEM_DEFS)) {
+          const image = new Image();
+          image.src = def.src;
+          ITEM_IMAGES[type] = image;
+        }
+      }
+
+      function layout() {
+        const shimaneWidth = Math.min(CONFIG.shimaneWidthMax, view.width * CONFIG.shimaneWidthRatio);
+        const svgScale = shimaneWidth / SHIMANE_SVG.bounds.width;
+        const shimaneHeight = SHIMANE_SVG.bounds.height * svgScale;
+        const centerX = view.width / 2;
+        const centerY = view.height * (view.width < 640 ? 0.68 : 0.64);
+        const supportLocalY = svgLocalY(SHIMANE_SVG.supportPoint.y, shimaneHeight);
+        return {
+          centerX,
+          centerY,
+          postTop: centerY + supportLocalY + 8,
+          postBottom: view.height + 20,
+          width: shimaneWidth,
+          height: shimaneHeight,
+          halfWidth: shimaneWidth / 2,
+          svgScale
+        };
+      }
+
+      function resetGame() {
+        state = "playing";
+        score = 0;
+        placedCount = 0;
+        tilt = 0;
+        displayTilt = 0;
+        wobble = 0;
+        bounce = 0;
+        shake = 0;
+        fallRotation = 0;
+        fallDrop = 0;
+        placedItems = [];
+        spawnHistory = [];
+        message = "島根の上に、島根を積め。";
+        messageTimer = 2;
+        currentItem = null;
+        pointerX = view.width / 2;
+        hud.style.display = "flex";
+        startScreen.classList.add("hide");
+        gameOverScreen.classList.add("hide");
+        spawnItem();
+        updateHud();
+      }
+
+      function spawnItem() {
+        const type = chooseItemType();
+        const def = ITEM_DEFS[type];
+        const l = layout();
+        currentItem = {
+          type,
+          label: def.label,
+          weight: CONFIG.itemWeights[type],
+          width: def.width,
+          height: def.height,
+          hitWidth: def.hitWidth,
+          hitHeight: def.hitHeight,
+          x: clamp(pointerX || view.width / 2, l.centerX - l.halfWidth + def.hitWidth * 0.5, l.centerX + l.halfWidth - def.hitWidth * 0.5),
+          y: 74,
+          dropped: false,
+          landed: false,
+          spin: random(-0.05, 0.05)
+        };
+        rememberSpawn(type);
+        setItemMessage(currentItem, "spawn");
+      }
+
+      function chooseItemType() {
+        const progress = Math.min(1, placedCount / 16);
+        const entries = Object.entries(CONFIG.baseSpawnWeights).map(([type, weight]) => {
+          const heavyBoost = CONFIG.itemWeights[type] >= 4 ? 1 + progress * 0.65 : 1;
+          const lightEase = CONFIG.itemWeights[type] <= 2 ? 1 - progress * 0.12 : 1;
+          const recentPenalty = recentSpawnPenalty(type);
+          const droughtBoost = spawnDroughtBoost(type);
+          return [type, weight * heavyBoost * lightEase * recentPenalty * droughtBoost];
+        });
+        const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+        let pick = Math.random() * total;
+        for (const [type, weight] of entries) {
+          pick -= weight;
+          if (pick <= 0) return type;
+        }
+        return "shijimi";
+      }
+
+      function rememberSpawn(type) {
+        spawnHistory.push(type);
+        if (spawnHistory.length > 16) spawnHistory.shift();
+      }
+
+      function recentSpawnPenalty(type) {
+        if (spawnHistory[spawnHistory.length - 1] === type) return 0.28;
+        if (spawnHistory.slice(-2).includes(type)) return 0.48;
+        if (spawnHistory.slice(-4).includes(type)) return 0.78;
+        return 1;
+      }
+
+      function spawnDroughtBoost(type) {
+        const lastIndex = spawnHistory.lastIndexOf(type);
+        if (lastIndex === -1) return spawnHistory.length >= 5 ? 1.65 : 1.15;
+        const since = spawnHistory.length - 1 - lastIndex;
+        let boost = since >= 7 ? 1.55 : since >= 5 ? 1.25 : 1;
+        if ((type === "shijimi" || type === "orochi") && since >= 5) boost *= 1.35;
+        return boost;
+      }
+
+      function update(dt) {
+        if (state === "playing") {
+          updatePlaying(dt);
+        } else if (state === "falling") {
+          updateFalling(dt);
+        }
+        updatePlacedAnimations(dt);
+        messageTimer = Math.max(0, messageTimer - dt);
+        bounce *= Math.pow(0.04, dt);
+        shake *= Math.pow(0.02, dt);
+      }
+
+      function updatePlacedAnimations(dt) {
+        for (const item of placedItems) {
+          if (!item.roll) continue;
+          item.roll.age += dt;
+          const t = clamp(item.roll.age / item.roll.duration, 0, 1);
+          const ease = 1 - easeOutBack(t);
+          const settleWobble = Math.sin(t * Math.PI * 2.2) * (1 - t) * item.roll.wobble;
+          item.rollDrawX = item.roll.startOffset * ease + settleWobble;
+          item.rollDrawAngle = item.roll.startAngle * ease + Math.sin(t * Math.PI * 2) * (1 - t) * item.roll.angleWobble;
+          item.rollDrawY = -Math.sin(t * Math.PI) * item.roll.hop;
+          if (t >= 1) {
+            item.roll = null;
+            item.rollDrawX = 0;
+            item.rollDrawY = 0;
+            item.rollDrawAngle = 0;
+          }
+        }
+      }
+
+      function updatePlaying(dt) {
+        const l = layout();
+        const limit = currentTiltLimit();
+        const danger = Math.abs(displayTilt) / limit;
+        const wind = Math.sin(performance.now() / 460) * (0.35 + placedCount * 0.015);
+        displayTilt += (tilt + wind + wobble - displayTilt) * Math.min(1, dt * 7.5);
+        wobble *= Math.pow(0.05, dt);
+
+        if (danger > 0.78) {
+          shake = Math.max(shake, (danger - 0.74) * CONFIG.dangerShake);
+        }
+
+        if (!currentItem) spawnItem();
+
+        if (currentItem && !currentItem.dropped) {
+          const minX = l.centerX - l.halfWidth + currentItem.hitWidth * 0.5;
+          const maxX = l.centerX + l.halfWidth - currentItem.hitWidth * 0.5;
+          currentItem.x += (clamp(pointerX || currentItem.x, minX, maxX) - currentItem.x) * Math.min(1, dt * 14);
+          currentItem.y = 72 + Math.sin(performance.now() / 230) * 3;
+        } else if (currentItem) {
+          const speed = CONFIG.baseFallSpeed + placedCount * CONFIG.fallSpeedGrowth;
+          currentItem.y += speed * dt;
+          currentItem.spin += dt * 1.2;
+          const localX = currentItem.x - l.centerX;
+          const landingWorld = getLandingWorldY(localX, currentItem);
+          if (currentItem.y + currentItem.hitHeight * 0.5 >= landingWorld) {
+            landCurrentItem(localX);
+          }
+        }
+
+        if (Math.abs(displayTilt) >= limit) {
+          startGameOver();
+        }
+      }
+
+      function updateFalling(dt) {
+        const dir = tilt >= 0 ? 1 : -1;
+        fallRotation += (dir * 92 - fallRotation) * Math.min(1, dt * 3.2);
+        fallDrop += 150 * dt;
+        displayTilt += (fallRotation - displayTilt) * Math.min(1, dt * 4);
+        shake = Math.max(shake, 2.5);
+      }
+
+      function landCurrentItem(localX) {
+        const item = currentItem;
+        const l = layout();
+        const settled = settleLanding(item, localX);
+        item.localX = settled.x;
+        item.landZone = getLandingSurface(item.localX, item.hitWidth).zone;
+        item.localY = getLandingLocalY(item.localX, item);
+        item.bouncePhase = 1;
+        item.settledRotation = settled.rotation;
+        item.balanceOffset = settled.balanceOffset;
+        item.contactCount = settled.contacts;
+        item.roll = createRollAnimation(item, settled);
+        item.rollDrawX = item.roll ? item.roll.startOffset : 0;
+        item.rollDrawY = 0;
+        item.rollDrawAngle = item.roll ? item.roll.startAngle : 0;
+        placedItems.push(item);
+        currentItem = null;
+        placedCount += 1;
+        bounce = CONFIG.landingBounce;
+        wobble += clamp(item.weight * (item.localX + item.balanceOffset) / l.halfWidth * 3.4 + settled.impactWobble, -9, 9);
+        recalcTilt();
+        addScore(item);
+        maybeShowMessage(item);
+        updateHud();
+        setTimeout(() => {
+          if (state === "playing" && !currentItem) spawnItem();
+        }, 280);
+      }
+
+      function settleLanding(item, rawLocalX) {
+        const l = layout();
+        const def = ITEM_DEFS[item.type];
+        const minX = -l.halfWidth + item.hitWidth * 0.5;
+        const maxX = l.halfWidth - item.hitWidth * 0.5;
+        const startX = clamp(rawLocalX, minX, maxX);
+        let x = startX;
+        let nudge = random(-1, 1) * CONFIG.settleRandomBase * def.slip;
+        let contacts = 0;
+        let impactWobble = random(-0.45, 0.45) * def.slip;
+        let contactInstability = 0;
+
+        // 傾いている方向へ、少しだけすべる。右が下がれば右へ、左が下がれば左へ。
+        nudge += clamp(displayTilt / currentTiltLimit(), -1, 1) * item.hitHeight * CONFIG.tiltSlideStrength * def.slip;
+
+        for (const placed of placedItems) {
+          const placedDef = ITEM_DEFS[placed.type];
+          const distance = Math.abs(x - placed.localX);
+          const overlap = (item.hitWidth + placed.hitWidth) * 0.48 - distance;
+          if (overlap <= 0) continue;
+
+          contacts += 1;
+          const direction = x === placed.localX ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(x - placed.localX);
+          const affinity = getContactInstability(def, placedDef, item, placed);
+          contactInstability += affinity;
+          nudge += direction * overlap * CONFIG.stackPushStrength * affinity;
+          nudge += random(-1, 1) * Math.min(5.5, overlap * 0.08) * affinity;
+          impactWobble += direction * affinity * 0.75;
+        }
+
+        const maxShift = 2.5 + def.slip * 10 + Math.min(placedCount, 12) * 0.18 + contacts * 1.5;
+        x = clamp(x + clamp(nudge, -maxShift, maxShift), minX, maxX);
+
+        const tallLean = def.shape === "tall" ? 1.25 : def.shape === "long" ? 0.95 : 0.65;
+        const rotation = clamp(random(-0.16, 0.16) * (0.75 + def.slip) + (nudge / item.hitWidth) * 0.22 * tallLean, -0.28, 0.28);
+        const balanceOffset = clamp(
+          random(-1, 1) * item.hitWidth * CONFIG.centerOfMassJitter * (0.6 + def.slip) + rotation * item.hitHeight * 0.16,
+          -item.hitWidth * 0.22,
+          item.hitWidth * 0.22
+        );
+
+        return { x, startX, rotation, balanceOffset, contacts, impactWobble, contactInstability };
+      }
+
+      function createRollAnimation(item, settled) {
+        const def = ITEM_DEFS[item.type];
+        const naturalShift = settled.startX - settled.x;
+        const contactBoost = settled.contacts > 0 ? 1 : 0;
+        const shapeBoost = def.shape === "round" ? 1.2 : def.shape === "tall" ? 0.75 : def.shape === "long" ? 0.9 : 0.35;
+        let startOffset = naturalShift;
+
+        if (settled.contacts > 0 && Math.abs(startOffset) < 3) {
+          startOffset = random(-1, 1) * (4 + def.slip * 7);
+        }
+
+        if (!settled.contacts && def.shape !== "round") {
+          startOffset *= 0.45;
+        }
+
+        startOffset = clamp(startOffset, -CONFIG.rollAnimationMaxOffset, CONFIG.rollAnimationMaxOffset);
+        const shouldRoll = Math.abs(startOffset) > 1.2 || settled.contacts > 0 || (def.shape === "round" && placedItems.length > 0);
+        if (!shouldRoll) return null;
+
+        const radius = Math.max(10, Math.min(item.hitWidth, item.hitHeight) * 0.55);
+        const rollDirection = startOffset === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(startOffset);
+        return {
+          age: 0,
+          duration: CONFIG.rollAnimationBase + def.slip * 0.34 + contactBoost * 0.12,
+          startOffset,
+          startAngle: -(startOffset / radius) * shapeBoost,
+          angleWobble: rollDirection * (0.08 + def.slip * 0.16 + settled.contacts * 0.04),
+          wobble: rollDirection * (1.6 + def.slip * 3.2 + Math.min(2.4, settled.contactInstability)),
+          hop: settled.contacts > 0 ? 3.5 + def.slip * 4 : 1.5 + def.slip * 2
+        };
+      }
+
+      function getContactInstability(fallingDef, placedDef, fallingItem, placedItem) {
+        let value = 0.65;
+        if (fallingDef.shape === "round") value += 0.28;
+        if (placedDef.shape === "round") value += 0.22;
+        if (fallingDef.shape === "tall") value += 0.18;
+        if (fallingDef.shape === "long") value += 0.14;
+        if (fallingDef.shape === "flat" && placedDef.shape === "flat") value -= 0.18;
+        if (fallingItem.weight > placedItem.weight) value += Math.min(0.24, (fallingItem.weight - placedItem.weight) * 0.05);
+        return clamp(value, 0.42, 1.15);
+      }
+
+      function getLandingLocalY(localX, fallingItem) {
+        const itemWidth = fallingItem.hitWidth || fallingItem.width || fallingItem.size;
+        const itemHeight = fallingItem.hitHeight || fallingItem.height || fallingItem.size;
+        const top = getLandingSurface(localX, itemWidth).top;
+        let stack = 0;
+        for (const item of placedItems) {
+          const distance = Math.abs(item.localX - localX);
+          const overlap = (item.hitWidth + itemWidth) * 0.43 - distance;
+          if (overlap > 0) {
+            const candidate = (getLandingSurface(item.localX, item.hitWidth).top - item.localY) + item.hitHeight * 0.5;
+            stack = Math.max(stack, candidate * (0.82 + overlap / itemWidth * 0.18));
+          }
+        }
+        return top - stack - itemHeight * 0.5;
+      }
+
+      function getLandingWorldY(localX, item) {
+        const l = layout();
+        const angle = degToRad(displayTilt);
+        const localY = getLandingLocalY(localX, item) + item.hitHeight * 0.5;
+        const rotated = rotatePoint(localX, localY, angle);
+        return l.centerY + rotated.y;
+      }
+
+      function recalcTilt() {
+        const l = layout();
+        const torque = placedItems.reduce((sum, item) => {
+          const torqueX = item.localX + (item.balanceOffset || 0);
+          const stackLeverage = 1 + Math.max(0, -item.localY / l.height) * 0.12;
+          return sum + item.weight * (torqueX / l.halfWidth) * stackLeverage;
+        }, 0);
+        const pilePressure = placedItems.reduce((sum, item) => sum + item.weight, 0) * 0.035;
+        tilt = clamp(torque * CONFIG.torqueToDegrees * (1 + pilePressure), -40, 40);
+      }
+
+      function addScore(item) {
+        const stableRate = 1 - Math.min(1, Math.abs(tilt) / currentTiltLimit());
+        const gained = CONFIG.scorePerItem + item.weight * CONFIG.weightScoreBonus + Math.round(CONFIG.stableBonusMax * stableRate);
+        score += gained;
+      }
+
+      function maybeShowMessage(item) {
+        setItemMessage(item, "landed");
+      }
+
+      function setItemMessage(item, phase) {
+        const phases = ITEM_MESSAGES[item.type] || {};
+        const candidates = phases[phase] || phases.spawn || [`${item.label}、いきます`];
+        message = candidates[Math.floor(Math.random() * candidates.length)];
+        messageTimer = phase === "landed" ? 1.3 : 2.8;
+      }
+
+      function currentTiltLimit() {
+        const progress = Math.min(1, placedCount / 24);
+        return CONFIG.gameOverTiltBase - (CONFIG.gameOverTiltBase - CONFIG.gameOverTiltMin) * progress;
+      }
+
+      function startGameOver() {
+        if (state !== "playing") return;
+        state = "falling";
+        currentItem = null;
+        message = "あっ";
+        messageTimer = 2;
+        setTimeout(showGameOver, 1050);
+      }
+
+      function showGameOver() {
+        if (state !== "falling") return;
+        state = "gameover";
+        hud.style.display = "none";
+        resultText.innerHTML = `スコア：${score}<br>積んだ数：${placedCount}個`;
+        rankText.textContent = getRank(score);
+        gameOverScreen.classList.remove("hide");
+      }
+
+      function getRank(value) {
+        if (value <= 30) return "鳥取と間違えた人";
+        if (value <= 80) return "島根初心者";
+        if (value <= 150) return "しじみを信じる者";
+        if (value <= 250) return "神在月のバランサー";
+        return "島根を支えし者";
+      }
+
+      function updateHud() {
+        scoreText.textContent = `スコア：${score}`;
+        countText.textContent = `積んだ数：${placedCount}個`;
+        if (tiltText) {
+          tiltText.textContent = `傾き：${Math.round(displayTilt)}°`;
+          tiltText.style.color = Math.abs(displayTilt) > currentTiltLimit() * 0.72 ? "var(--danger)" : "var(--green)";
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, view.width, view.height);
+        const shakeX = state === "playing" || state === "falling" ? random(-shake, shake) : 0;
+        const shakeY = state === "playing" || state === "falling" ? random(-shake * 0.55, shake * 0.55) : 0;
+        ctx.save();
+        ctx.translate(shakeX, shakeY);
+        drawBackground();
+        drawGameScene();
+        ctx.restore();
+      }
+
+      function drawBackground() {
+        const horizon = view.height * 0.76;
+        const sky = ctx.createLinearGradient(0, 0, 0, horizon);
+        sky.addColorStop(0, "#bde9ff");
+        sky.addColorStop(0.58, "#e8f8ff");
+        sky.addColorStop(1, "#fff7d9");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, view.width, horizon);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        for (let i = 0; i < 8; i++) {
+          const x = (i * 137 + 42) % view.width;
+          const y = view.height * 0.16 + (i % 4) * 38;
+          drawCloud(x, y, 46 + (i % 3) * 12);
+        }
+
+        const sea = ctx.createLinearGradient(0, horizon, 0, view.height);
+        sea.addColorStop(0, "#70c7d4");
+        sea.addColorStop(1, "#2d8fa7");
+        ctx.fillStyle = sea;
+        ctx.fillRect(0, horizon, view.width, view.height - horizon);
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.48)";
+        ctx.lineWidth = 2;
+        for (let y = horizon + 22; y < view.height; y += 34) {
+          ctx.beginPath();
+          for (let x = -20; x <= view.width + 20; x += 18) {
+            const waveY = y + Math.sin((x + y) * 0.025) * 4;
+            if (x === -20) ctx.moveTo(x, waveY);
+            else ctx.lineTo(x, waveY);
+          }
+          ctx.stroke();
+        }
+      }
+
+      function drawCloud(x, y, s) {
+        ctx.beginPath();
+        ctx.ellipse(x, y, s * 0.48, s * 0.22, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + s * 0.26, y + 2, s * 0.42, s * 0.2, 0, 0, Math.PI * 2);
+        ctx.ellipse(x - s * 0.25, y + 4, s * 0.34, s * 0.17, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawGameScene() {
+        const l = layout();
+        drawPost(l);
+        const sceneAngle = state === "falling" ? fallRotation : displayTilt;
+        ctx.save();
+        ctx.translate(l.centerX, l.centerY + fallDrop - bounce);
+        ctx.rotate(degToRad(sceneAngle));
+        drawShimane(l);
+        for (const item of placedItems) {
+          drawPlacedItem(item);
+        }
+        ctx.restore();
+        if (currentItem) drawFallingItem(currentItem);
+        drawMessage();
+        drawAimLine();
+      }
+
+      function drawPost(l) {
+        ctx.save();
+        ctx.fillStyle = "#7b5232";
+        ctx.strokeStyle = "#5b3922";
+        ctx.lineWidth = 3;
+        roundRect(l.centerX - 13, l.postTop, 26, l.postBottom - l.postTop, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#9a6a40";
+        roundRect(l.centerX - 32, l.postTop - 10, 64, 18, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawShimane(l) {
+        if (typeof Path2D === "undefined") {
+          drawFallbackShimane(l);
+          return;
+        }
+        const w = l.width;
+        const h = l.height;
+        const paths = getShimanePaths();
+        const scale = l.svgScale;
+        ctx.save();
+        ctx.translate(-w / 2 - SHIMANE_SVG.bounds.x * scale, svgAnchorY(h) - SHIMANE_SVG.bounds.y * scale);
+        ctx.scale(scale, scale);
+        ctx.fillStyle = "#5f8f62";
+        ctx.strokeStyle = "#234f38";
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.lineWidth = Math.max(0.8, 3 / scale);
+        for (const path of paths) {
+          ctx.fill(path);
+          ctx.stroke(path);
+        }
+
+        // 隠岐の島も本島と同じ線色で描く。
+        ctx.strokeStyle = "#234f38";
+        ctx.lineWidth = Math.max(0.8, 3 / scale);
+        for (let i = 2; i < paths.length; i += 1) {
+          ctx.stroke(paths[i]);
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.beginPath();
+        ctx.ellipse(svgLocalX(279, l), svgLocalY(444, h), w * 0.12, h * 0.035, -0.08, 0, Math.PI * 2);
+        ctx.ellipse(svgLocalX(343, l), svgLocalY(430, h), w * 0.09, h * 0.03, 0.12, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function getShimanePaths() {
+        if (!SHIMANE_SVG.pathObjects) {
+          SHIMANE_SVG.pathObjects = SHIMANE_SVG.paths.map((path) => new Path2D(path));
+        }
+        return SHIMANE_SVG.pathObjects;
+      }
+
+      function svgAnchorY(height) {
+        return -height * 0.56;
+      }
+
+      function svgLocalX(svgX, l) {
+        return (svgX - SHIMANE_SVG.bounds.x) * l.svgScale - l.width / 2;
+      }
+
+      function svgLocalY(svgY, height) {
+        const scale = height / SHIMANE_SVG.bounds.height;
+        return svgAnchorY(height) + (svgY - SHIMANE_SVG.bounds.y) * scale;
+      }
+
+      function getLandingSurface(localX, itemSize = 0) {
+        const l = layout();
+        for (const zone of SHIMANE_SVG.okiHitZones) {
+          const left = svgLocalX(zone.x, l);
+          const right = svgLocalX(zone.x + zone.width, l);
+          const padding = Math.max(10, itemSize * 0.28);
+          if (localX >= left - padding && localX <= right + padding) {
+            return {
+              top: svgLocalY(zone.top, l.height) - 2,
+              zone: "oki"
+            };
+          }
+        }
+        return { top: shimaneTopY(localX), zone: "main" };
+      }
+
+      function svgXFromLocal(localX, l) {
+        return SHIMANE_SVG.bounds.x + (localX + l.width / 2) / l.svgScale;
+      }
+
+      function interpolateSvgY(points, svgX) {
+        if (svgX <= points[0].x) return points[0].y;
+        for (let i = 1; i < points.length; i += 1) {
+          const prev = points[i - 1];
+          const next = points[i];
+          if (svgX <= next.x) {
+            const t = (svgX - prev.x) / (next.x - prev.x || 1);
+            return prev.y + (next.y - prev.y) * t;
+          }
+        }
+        return points[points.length - 1].y;
+      }
+
+      function drawFallbackShimane(l) {
+        const w = l.width;
+        const h = l.height;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.50, -h * 0.12);
+        ctx.bezierCurveTo(-w * 0.43, -h * 0.45, -w * 0.28, -h * 0.35, -w * 0.18, -h * 0.40);
+        ctx.bezierCurveTo(-w * 0.03, -h * 0.54, w * 0.08, -h * 0.28, w * 0.20, -h * 0.38);
+        ctx.bezierCurveTo(w * 0.34, -h * 0.50, w * 0.43, -h * 0.27, w * 0.50, -h * 0.18);
+        ctx.bezierCurveTo(w * 0.47, h * 0.02, w * 0.34, h * 0.11, w * 0.22, h * 0.08);
+        ctx.bezierCurveTo(w * 0.08, h * 0.20, -w * 0.04, h * 0.09, -w * 0.17, h * 0.17);
+        ctx.bezierCurveTo(-w * 0.31, h * 0.25, -w * 0.43, h * 0.07, -w * 0.52, h * 0.15);
+        ctx.bezierCurveTo(-w * 0.57, h * 0.06, -w * 0.56, -h * 0.04, -w * 0.50, -h * 0.12);
+        ctx.closePath();
+        ctx.fillStyle = "#5f8f62";
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#234f38";
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function shimaneTopY(localX) {
+        const l = layout();
+        const svgX = clamp(svgXFromLocal(localX, l), SHIMANE_SVG.mainSurface[0].x, SHIMANE_SVG.mainSurface[SHIMANE_SVG.mainSurface.length - 1].x);
+        const svgY = interpolateSvgY(SHIMANE_SVG.mainSurface, svgX);
+        const ripple = Math.sin(svgX * 0.28) * l.svgScale * 1.1;
+        return svgLocalY(svgY, l.height) + ripple;
+      }
+
+      function drawFallingItem(item) {
+        ctx.save();
+        ctx.translate(item.x, item.y);
+        ctx.rotate(item.dropped ? item.spin : Math.sin(performance.now() / 270) * 0.05);
+        drawItem(item);
+        ctx.restore();
+        if (!item.dropped && state === "playing") {
+          ctx.save();
+          ctx.strokeStyle = "rgba(35, 79, 56, 0.18)";
+          ctx.setLineDash([6, 9]);
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(item.x, item.y + item.hitHeight * 0.6);
+          ctx.lineTo(item.x, layout().centerY - 56);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function drawPlacedItem(item) {
+        const bob = item.bouncePhase ? Math.sin(item.bouncePhase * Math.PI) * -8 : 0;
+        item.bouncePhase = Math.max(0, (item.bouncePhase || 0) - 0.035);
+        ctx.save();
+        ctx.translate(item.localX + (item.rollDrawX || 0), item.localY + bob + (item.rollDrawY || 0));
+        ctx.rotate((item.settledRotation || 0) + (item.rollDrawAngle || 0));
+        drawItem(item);
+        ctx.restore();
+      }
+
+      function drawItem(item) {
+        ctx.save();
+        const image = ITEM_IMAGES[item.type];
+        if (image && image.complete && image.naturalWidth > 0) {
+          const crop = ITEM_DEFS[item.type].crop;
+          ctx.drawImage(image, crop[0], crop[1], crop[2], crop[3], -item.width / 2, -item.height / 2, item.width, item.height);
+        } else {
+          ctx.lineWidth = Math.max(2, item.width * 0.06);
+          ctx.strokeStyle = "#26352b";
+          drawFallbackItem(item);
+        }
+        ctx.restore();
+      }
+
+      function drawFallbackItem(item) {
+        const s = Math.max(item.width, item.height);
+        if (item.type === "shijimi") drawShijimi(s * 0.72);
+        else if (item.type === "kami") drawKami(s * 0.74);
+        else if (item.type === "magatama") drawMagatama(s * 0.82);
+        else if (item.type === "orochi") drawOni(s * 0.72);
+        else if (item.type === "dojou") drawMask(s * 0.82);
+        else if (item.type === "cow") drawCow(s * 0.78);
+        else if (item.type === "castle") drawCastle(s * 0.76);
+        else drawCastle(s * 0.7);
+      }
+
+      function drawShijimi(s) {
+        ctx.fillStyle = "#8a6b50";
+        ctx.beginPath();
+        ctx.ellipse(-s * 0.18, 0, s * 0.27, s * 0.18, -0.35, 0, Math.PI * 2);
+        ctx.ellipse(s * 0.18, 0, s * 0.27, s * 0.18, 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.5)";
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.arc(i * s * 0.15, -s * 0.03, s * 0.18, 0.2, 2.4);
+          ctx.stroke();
+        }
+      }
+
+      function drawKami(s) {
+        ctx.fillStyle = "#f8f6ee";
+        roundRect(-s * 0.28, -s * 0.12, s * 0.56, s * 0.48, s * 0.16);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#ffe3b2";
+        ctx.beginPath();
+        ctx.arc(0, -s * 0.26, s * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#d3a63e";
+        ctx.fillRect(-s * 0.13, -s * 0.55, s * 0.26, s * 0.17);
+        ctx.strokeRect(-s * 0.13, -s * 0.55, s * 0.26, s * 0.17);
+        drawEyes(s * 0.08, -s * 0.27, s * 0.08);
+        ctx.strokeStyle = "#26352b";
+        ctx.beginPath();
+        ctx.arc(0, -s * 0.22, s * 0.08, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+      }
+
+      function drawMagatama(s) {
+        ctx.fillStyle = "#56a6ad";
+        ctx.beginPath();
+        ctx.moveTo(s * 0.23, -s * 0.34);
+        ctx.bezierCurveTo(-s * 0.27, -s * 0.48, -s * 0.43, s * 0.08, -s * 0.09, s * 0.31);
+        ctx.bezierCurveTo(s * 0.24, s * 0.53, s * 0.48, s * 0.1, s * 0.18, -s * 0.04);
+        ctx.bezierCurveTo(s * 0.02, -s * 0.11, s * 0.02, -s * 0.29, s * 0.23, -s * 0.34);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#fff9e8";
+        ctx.beginPath();
+        ctx.arc(s * 0.1, -s * 0.18, s * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function drawOni(s) {
+        ctx.fillStyle = "#dc4438";
+        ctx.beginPath();
+        ctx.arc(0, 0, s * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#f5d681";
+        drawHorn(-s * 0.18, -s * 0.32, s);
+        drawHorn(s * 0.18, -s * 0.32, s);
+        ctx.strokeStyle = "#26352b";
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.18, -s * 0.08);
+        ctx.lineTo(-s * 0.03, -s * 0.01);
+        ctx.moveTo(s * 0.18, -s * 0.08);
+        ctx.lineTo(s * 0.03, -s * 0.01);
+        ctx.stroke();
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(-s * 0.18, s * 0.14, s * 0.36, s * 0.08);
+        ctx.strokeRect(-s * 0.18, s * 0.14, s * 0.36, s * 0.08);
+      }
+
+      function drawHorn(x, y, s) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - s * 0.1, y - s * 0.28);
+        ctx.lineTo(x + s * 0.12, y - s * 0.08);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function drawMask(s) {
+        ctx.fillStyle = "#f6c88f";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s * 0.36, s * 0.42, 0.06, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#f09a76";
+        ctx.beginPath();
+        ctx.ellipse(s * 0.2, s * 0.02, s * 0.17, s * 0.08, -0.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        drawEyes(s * 0.11, -s * 0.1, s * 0.12);
+        ctx.beginPath();
+        ctx.arc(-s * 0.05, s * 0.17, s * 0.1, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+      }
+
+      function drawCow(s) {
+        ctx.fillStyle = "#1d1d1d";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s * 0.42, s * 0.31, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#f2efe6";
+        ctx.beginPath();
+        ctx.ellipse(0, s * 0.11, s * 0.22, s * 0.13, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#e9d2a0";
+        drawHorn(-s * 0.28, -s * 0.2, s * 0.75);
+        drawHorn(s * 0.28, -s * 0.2, s * 0.75);
+        drawEyes(s * 0.14, -s * 0.05, s * 0.07);
+        ctx.fillStyle = "#26352b";
+        ctx.beginPath();
+        ctx.arc(-s * 0.06, s * 0.12, 1.8, 0, Math.PI * 2);
+        ctx.arc(s * 0.06, s * 0.12, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawCastle(s) {
+        ctx.fillStyle = "#1d2730";
+        ctx.strokeStyle = "#26352b";
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.4, s * 0.32);
+        ctx.lineTo(s * 0.4, s * 0.32);
+        ctx.lineTo(s * 0.31, s * 0.1);
+        ctx.lineTo(s * 0.23, s * 0.1);
+        ctx.lineTo(s * 0.18, -s * 0.09);
+        ctx.lineTo(s * 0.1, -s * 0.09);
+        ctx.lineTo(0, -s * 0.38);
+        ctx.lineTo(-s * 0.1, -s * 0.09);
+        ctx.lineTo(-s * 0.18, -s * 0.09);
+        ctx.lineTo(-s * 0.23, s * 0.1);
+        ctx.lineTo(-s * 0.31, s * 0.1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#f7f0d8";
+        ctx.fillRect(-s * 0.06, s * 0.04, s * 0.12, s * 0.28);
+        ctx.fillRect(-s * 0.22, s * 0.18, s * 0.09, s * 0.1);
+        ctx.fillRect(s * 0.13, s * 0.18, s * 0.09, s * 0.1);
+      }
+
+      function drawEyes(dx, y, r) {
+        ctx.fillStyle = "#26352b";
+        ctx.beginPath();
+        ctx.arc(-dx, y, r * 0.35, 0, Math.PI * 2);
+        ctx.arc(dx, y, r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawMessage() {
+        if (state === "start") return;
+        const alpha = clamp(messageTimer / 0.4, 0, 1);
+        ctx.save();
+        ctx.globalAlpha = 0.78 + alpha * 0.22;
+        ctx.font = `900 ${view.width < 520 ? 22 : 26}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const textWidth = Math.min(view.width - 28, ctx.measureText(message).width + 46);
+        const x = view.width / 2;
+        const y = view.height * 0.91;
+        ctx.fillStyle = "rgba(255, 250, 235, 0.98)";
+        roundRect(x - textWidth / 2, y - 30, textWidth, 60, 8);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(35, 79, 56, 0.32)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = "#163526";
+        ctx.fillText(message, x, y);
+        ctx.restore();
+      }
+
+      function drawAimLine() {
+        if (state !== "playing" || !currentItem || currentItem.dropped) return;
+        const l = layout();
+        ctx.save();
+        ctx.fillStyle = "rgba(35, 79, 56, 0.72)";
+        ctx.beginPath();
+        ctx.arc(currentItem.x, l.centerY - l.height * 0.58, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function roundRect(x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + width, y, x + width, y + height, r);
+        ctx.arcTo(x + width, y + height, x, y + height, r);
+        ctx.arcTo(x, y + height, x, y, r);
+        ctx.arcTo(x, y, x + width, y, r);
+        ctx.closePath();
+      }
+
+      function dropItem() {
+        if (state !== "playing" || !currentItem || currentItem.dropped) return;
+        currentItem.dropped = true;
+        setItemMessage(currentItem, "drop");
+      }
+
+      function setPointerFromEvent(event) {
+        const point = event.touches ? event.touches[0] : event;
+        if (!point) return;
+        const rect = canvas.getBoundingClientRect();
+        pointerX = clamp(point.clientX - rect.left, 0, view.width);
+        pointerActive = true;
+      }
+
+      function rotatePoint(x, y, angle) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        return { x: x * cos - y * sin, y: x * sin + y * cos };
+      }
+
+      function degToRad(deg) {
+        return deg * Math.PI / 180;
+      }
+
+      function easeOutBack(t) {
+        const c1 = 1.35;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function random(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function loop(time) {
+        const dt = Math.min(0.033, (time - lastTime) / 1000 || 0);
+        lastTime = time;
+        update(dt);
+        updateHud();
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      document.getElementById("startButton").addEventListener("click", resetGame);
+      document.getElementById("restartButton").addEventListener("click", resetGame);
+      document.getElementById("againButton").addEventListener("click", resetGame);
+
+      canvas.addEventListener("pointermove", setPointerFromEvent);
+      canvas.addEventListener("pointerdown", (event) => {
+        setPointerFromEvent(event);
+        dropItem();
+      });
+      canvas.addEventListener("touchmove", (event) => {
+        setPointerFromEvent(event);
+        event.preventDefault();
+      }, { passive: false });
+      canvas.addEventListener("touchstart", (event) => {
+        setPointerFromEvent(event);
+        dropItem();
+        event.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
