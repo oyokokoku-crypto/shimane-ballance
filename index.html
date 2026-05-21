@@ -423,6 +423,8 @@
       let fallDrop = 0;
       let pointerX = 0;
       let pointerActive = false;
+      let touchAiming = false;
+      let touchPointerId = null;
       let currentItem = null;
       let placedItems = [];
       let spawnHistory = [];
@@ -1305,11 +1307,15 @@
       }
 
       function setPointerFromEvent(event) {
-        const point = event.touches ? event.touches[0] : event;
+        const point = event.touches ? event.touches[0] : event.changedTouches ? event.changedTouches[0] : event;
         if (!point) return;
         const rect = canvas.getBoundingClientRect();
         pointerX = clamp(point.clientX - rect.left, 0, view.width);
         pointerActive = true;
+      }
+
+      function isTouchLikePointer(event) {
+        return event.pointerType === "touch" || event.pointerType === "pen";
       }
 
       function rotatePoint(x, y, angle) {
@@ -1349,20 +1355,66 @@
       document.getElementById("restartButton").addEventListener("click", resetGame);
       document.getElementById("againButton").addEventListener("click", resetGame);
 
-      canvas.addEventListener("pointermove", setPointerFromEvent);
-      canvas.addEventListener("pointerdown", (event) => {
-        setPointerFromEvent(event);
-        dropItem();
-      });
-      canvas.addEventListener("touchmove", (event) => {
-        setPointerFromEvent(event);
-        event.preventDefault();
-      }, { passive: false });
-      canvas.addEventListener("touchstart", (event) => {
-        setPointerFromEvent(event);
-        dropItem();
-        event.preventDefault();
-      }, { passive: false });
+      if (window.PointerEvent) {
+        canvas.addEventListener("pointermove", (event) => {
+          if (isTouchLikePointer(event) && !touchAiming) return;
+          setPointerFromEvent(event);
+          if (isTouchLikePointer(event)) event.preventDefault();
+        });
+
+        canvas.addEventListener("pointerdown", (event) => {
+          setPointerFromEvent(event);
+          if (isTouchLikePointer(event)) {
+            touchAiming = true;
+            touchPointerId = event.pointerId;
+            canvas.setPointerCapture?.(event.pointerId);
+            event.preventDefault();
+            return;
+          }
+          dropItem();
+        });
+
+        canvas.addEventListener("pointerup", (event) => {
+          if (!isTouchLikePointer(event) || !touchAiming || event.pointerId !== touchPointerId) return;
+          setPointerFromEvent(event);
+          touchAiming = false;
+          touchPointerId = null;
+          canvas.releasePointerCapture?.(event.pointerId);
+          event.preventDefault();
+          dropItem();
+        });
+
+        canvas.addEventListener("pointercancel", () => {
+          touchAiming = false;
+          touchPointerId = null;
+        });
+      } else {
+        canvas.addEventListener("mousemove", setPointerFromEvent);
+        canvas.addEventListener("mousedown", (event) => {
+          setPointerFromEvent(event);
+          dropItem();
+        });
+        canvas.addEventListener("touchstart", (event) => {
+          setPointerFromEvent(event);
+          touchAiming = true;
+          event.preventDefault();
+        }, { passive: false });
+        canvas.addEventListener("touchmove", (event) => {
+          if (!touchAiming) return;
+          setPointerFromEvent(event);
+          event.preventDefault();
+        }, { passive: false });
+        canvas.addEventListener("touchend", (event) => {
+          if (!touchAiming) return;
+          setPointerFromEvent(event);
+          touchAiming = false;
+          event.preventDefault();
+          dropItem();
+        }, { passive: false });
+        canvas.addEventListener("touchcancel", () => {
+          touchAiming = false;
+        });
+      }
 
       window.addEventListener("resize", resizeCanvas);
       resizeCanvas();
